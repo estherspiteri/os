@@ -78,6 +78,9 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="/home/espi0027/Desktop/eggshell/CommandlineInterpreter.h">
+			<Option target="eggshell"/>
+		</Unit>
 		<Unit filename="/home/espi0027/Desktop/eggshell/ShellVariables.h">
 			<Option target="eggshell"/>
 		</Unit>

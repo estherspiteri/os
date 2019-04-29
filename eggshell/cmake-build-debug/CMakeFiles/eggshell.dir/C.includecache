@@ -6,6 +6,16 @@
 
 #IncludeRegexTransform: 
 
+/home/espi0027/Desktop/eggshell/CommandlineInterpreter.c
+ShellVariables.h
+/home/espi0027/Desktop/eggshell/ShellVariables.h
+CommandlineInterpreter.h
+/home/espi0027/Desktop/eggshell/CommandlineInterpreter.h
+
+/home/espi0027/Desktop/eggshell/CommandlineInterpreter.h
+fcntl.h
+-
+
 /home/espi0027/Desktop/eggshell/ShellVariables.c
 string.h
 -
@@ -41,8 +51,10 @@ ShellVariables.c
 /home/espi0027/Desktop/eggshell/ShellVariables.c
 ShellVariables.h
 /home/espi0027/Desktop/eggshell/ShellVariables.h
-stdbool.h
-/home/espi0027/Desktop/eggshell/stdbool.h
+CommandlineInterpreter.h
+/home/espi0027/Desktop/eggshell/CommandlineInterpreter.h
+CommandlineInterpreter.c
+/home/espi0027/Desktop/eggshell/CommandlineInterpreter.c
 
 /home/espi0027/Desktop/eggshell/linenoise/linenoise.c
 termios.h

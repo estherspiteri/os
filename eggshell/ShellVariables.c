@@ -1,123 +1,192 @@
 #include <string.h>
 #include "ShellVariables.h"
 
-#define SPACING 20
+#define VAR_SIZE 10
 
-void createVariable(int *num, var **ptr, char* name, char* value);
-void initialiseName(int num, var **ptr, char* name);
-void initialiseValue(int num, var **ptr, char* value);
-void mallocFail(int num, var **ptr);
-void mallocFail_NAME(int num, var **ptr);
-void mallocFail_VALUE(int num, var **ptr);
-void freeArray(int num, var **ptr);
+static char ** varNames;
+static int num;
 
-void initVariables(int *num, var **ptr){
-    //setting array pointer to NULL and counter to zero
-    *ptr = NULL;
-    *num = 0;
+void allocVarSpace();
+void mallocFail();
+
+void setVariable(char* name, char* value){
+
+    allocVarSpace();
+
+    setenv(name, value, 1);
+    strcpy(varNames[num], name);
+
+    num++;
 }
 
-void createVariable(int *num, var **ptr, char* name, char* value){
-    *ptr = (var *)realloc(*ptr, sizeof(var)*(*num+1)); //allocates memory for 1 var
-    mallocFail(*num, ptr);
+void allocVarSpace(){
+    if(num == 0){
+        varNames = malloc(sizeof(char*)); //allocates memory
+        mallocFail();
+    }
+    else{
+        varNames = realloc(varNames, sizeof(char*)*(num+1)); //allocates memory
+        mallocFail();
+    }
 
-    initialiseName(*num, ptr, name);
-    initialiseValue(*num, ptr, value);
-    (*num)++;
+    varNames[num] = malloc(sizeof(char)*(VAR_SIZE));
+    mallocFail();
 }
 
-void setInitVariables(int *num, var **ptr) {
-    createVariable(num, ptr, "PROMPT", "eggshell > ");
+void setInitVariables() {
+    num = 0;
 
-    char cwd[100];
+    setVariable("PROMPT", "eggshell > ");
+    setVariable("SHELL", getenv("PWD"));
+    setVariable("EXITCODE", " ");
+
+    char cwd[50];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        createVariable(num, ptr, "CWD", cwd);
+        setVariable("CWD", cwd);
     } else {
         perror("getcwd() error");
-        freeArray(*num, ptr);
+        exit(EXIT_FAILURE);
     }
 
     char *tty = ttyname(STDIN_FILENO);
     if (tty != NULL) {
-        createVariable(num, ptr, "TERMINAL", tty);
+        setVariable("TERMINAL", tty);
     } else {
         perror("ttyname() error");
-        freeArray(*num, ptr);
+        exit(EXIT_FAILURE);
     }
+
+    allocVarSpace();
+    strcpy(varNames[num], "PATH");
+    num++;
+
+    allocVarSpace();
+    strcpy(varNames[num], "USER");
+    num++;
+
+    allocVarSpace();
+    strcpy(varNames[num], "HOME");
+    num++;
 }
 
-char * getVariable(int num, var **ptr, char * name){
-    for (int j = 0; j < num; ++j) {
-        if (strcmp(name, (*ptr + j)->name) == 0) { //compares var names
-            //returns pointer to var which matches inputted name
-            return (*ptr + j)->value;
-        }
-    }
-    return NULL;
-}
+//char * getValue(char * name){
+//    char * var;
+//    if ((var = getenv(name)) != NULL) { //compares var names
+//        return var;
+//    }
+//
+//    return NULL;
+//}
 
-void setVariable(int *num, var **ptr, char *name, char *value) {
-    for (int j = 0; j < *num; ++j) {
-        if (strcmp(name, (*ptr + j)->name) == 0) { //compares tuple ids
-            (*ptr + j)->value = value;
-            return;
-        }
-    }
-    createVariable(num, ptr, name, value);
-}
-
-void initialiseName(int num, var **ptr, char* name){
-    (*ptr+num)->name = (char *)malloc(strlen(name)+1); //allocates memory for var name
-    mallocFail_NAME(num, ptr);
-    strcpy((*ptr+num)->name, name);                    //copies string id input into var's name
-}
-
-void initialiseValue(int num, var **ptr, char* value){
-    (*ptr+num)->value = (char *)malloc(strlen(value)+1); //allocates memory for var value
-    mallocFail_VALUE(num, ptr);
-    strcpy((*ptr+num)->value, value);                    //copies string id input into var's value
-}
-
-void displayVariables(int num, var **ptr){
-    char temp[50];
+void displayVariables(){
+    char temp[100];
+    char varName[VAR_SIZE];
 
     for (int i = 0; i < num; ++i) {
-        strcpy(temp, (*ptr+i)->name);
-        strcat(temp, " = ");
-        strcat(temp, (*ptr+i)->value);
+        strcpy(varName, varNames[i]);
+
+        strcpy(temp, varName);
+        strcat(temp, "=");
+        strcat(temp, getenv(varName));
 
         puts(temp);
     }
 }
 
-void freeArray(int num, var **ptr){
+void displayOneVariable(char **name){
     for (int i = 0; i < num; ++i) {
-        free((*ptr+num)->name);
-        free((*ptr+num)->value);
+        if(strstr(&name[0][1], varNames[i]) != NULL){
+            printf("%s", getenv(varNames[i]));
+            fflush(stdout);
+
+            if(strlen(varNames[i]) < strlen(&name[0][1])){
+                //to output from variable onwards
+                printf("%s", &name[0][strlen(varNames[i])+1]);
+                fflush(stdout);
+            }
+            return;
+        }
     }
-    free(ptr);
+
+    printf("--> Variable NAME does not exist  <--");
+    fflush(stdout);
+
+}
+
+void checkSetVariables(char **args){
+    //if name & value only inputted by user
+    if (args[1] == NULL) {
+        const char delim[2] = "=";
+        char *token;
+
+        char *temp[VAR_SIZE];
+
+
+        int j = 0;
+
+        /* get the first token */
+        token = strtok(*args, delim);
+
+        while (token != NULL) {
+
+            temp[j] = token;
+
+            token = strtok(NULL, delim);
+            j++;
+        }
+
+
+        for (int i = 0; i < num; ++i) {
+            //checking if variable already exists
+            if (strcmp(temp[0], varNames[i]) == 0) {
+                //to initialize with value of existing variable
+                if (temp[1][0] == '$') {
+                    setenv(temp[0], getenv(&temp[1][1]), 1); //without updating count
+                }
+                else {
+                    setenv(temp[0], temp[1], 1); //without updating count
+                }
+                return;
+            }
+        }
+
+        //if variable to be initialised doesn't yet exist
+
+        //to initialize with value of existing variable
+        if (temp[1][0] == '$') {
+            setVariable(temp[0], getenv(&temp[1][1]));
+            return;
+        } else {
+            setVariable(temp[0], temp[1]);
+            return;
+        }
+    }
+    else {
+        puts("--> NAME=VALUE  <--");
+    }
+}
+
+void mallocFail(){
+    if (varNames == NULL){ //if memory request fails
+        puts("-- Memory allocation failed. --\nGoodbye");
+        for (int i = 0; i < num; ++i) {
+            free(varNames[i]);
+        }
+        free(varNames);
+    }
+}
+
+void freeVar(){
+    for (int i = 0; i < num; ++i) {
+        free(varNames[i]);
+    }
+    free(varNames);
+}
+
+void fail(){
+    for (int i = 0; i < num; ++i) {
+        free(varNames[i]);
+    }
+    free(varNames);
     exit(EXIT_FAILURE);
 }
-
-void mallocFail(int num, var **ptr){
-    if (*ptr == NULL){ //if memory request fails
-        puts("-- Memory allocation failed. --\nGoodbye");
-        freeArray(num, ptr);
-    }
-}
-
-void mallocFail_NAME(int num, var **ptr){
-    if ((*ptr+num)->name == NULL){ //if memory request fails
-        puts("-- Memory allocation failed. --\nGoodbye");
-        freeArray(num, ptr);
-    }
-}
-
-void mallocFail_VALUE(int num, var **ptr){
-    if ((*ptr+num)->value == NULL){ //if memory request fails
-        puts("-- Memory allocation failed. --\nGoodbye");
-        free((*ptr+num)->name);
-        freeArray(num, ptr);
-    }
-}
-
